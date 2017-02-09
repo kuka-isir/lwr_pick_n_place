@@ -1,17 +1,11 @@
 #include <ros/ros.h>
 #include <geometry_msgs/PoseArray.h>
 #include <cart_opt_ctrl/UpdateWaypoints.h>
-
-ros::Publisher waypoints_pub_;
-
-double deg2rad = 3.141592653589793/180;
-bool new_trajectory_call = false, traj_finished = true, traj_computed = false;
+#define DEG2RAD 3.141592653589793/180
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "send_simple_traj");
   ros::NodeHandle nh;
-  
-  waypoints_pub_ = nh.advertise<geometry_msgs::PoseArray>("/KDLTrajGen/waypoints_desired",1);
   
   geometry_msgs::PoseArray waypoints;
   waypoints.header.frame_id = "link_0";
