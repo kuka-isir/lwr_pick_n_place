@@ -43,5 +43,7 @@ qtcreator-*
 # Emacs
 .#*
 
+*.kdev4
+
 # Catkin custom files
 CATKIN_IGNORE
