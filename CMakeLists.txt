@@ -7,6 +7,8 @@ project(lwr_pick_n_place)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  geometry_msgs
+  cart_opt_ctrl
 )
 
 ## System dependencies are found with CMake's conventions
@@ -114,6 +116,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  include
 )
 
 ## Declare a C++ library
@@ -127,16 +130,14 @@ include_directories(
 # add_dependencies(lwr_pick_n_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(lwr_pick_n_place_node src/lwr_pick_n_place_node.cpp)
+add_executable(send_simple_traj src/send_simple_traj.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(lwr_pick_n_place_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(lwr_pick_n_place_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(send_simple_traj ${catkin_LIBRARIES})
 
 #############
 ## Install ##
