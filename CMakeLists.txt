@@ -119,24 +119,12 @@ include_directories(
   include
 )
 
-## Declare a C++ library
-# add_library(lwr_pick_n_place
-#   src/${PROJECT_NAME}/lwr_pick_n_place.cpp
-# )
+add_library(lwr_pick_n_place src/lwr_pick_n_place.cpp)
+add_dependencies(lwr_pick_n_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-## Add cmake target dependencies of the library
-## as an example, code may need to be generated before libraries
-## either from message generation or dynamic reconfigure
-# add_dependencies(lwr_pick_n_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Declare a C++ executable
+add_executable(demo0 src/demo0.cpp)
+target_link_libraries(demo0 ${catkin_LIBRARIES} lwr_pick_n_place)
 add_executable(send_simple_traj src/send_simple_traj.cpp)
-
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(lwr_pick_n_place_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
 target_link_libraries(send_simple_traj ${catkin_LIBRARIES})
 
 #############
