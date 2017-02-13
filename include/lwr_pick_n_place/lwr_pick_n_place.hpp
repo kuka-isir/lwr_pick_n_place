@@ -23,6 +23,10 @@ class LwrPickNPlace{
     // Retrieve the poses of all the objects
     void updateObjectsPosition();
     
+    // Check if object has been found recently or if the pose is outdated
+    bool objectFoundRecently(const std::string& name);
+    bool objectFoundRecently(const int& id);
+    
     // The robot tries to go to the (x,y,z) position
     void moveToCartesianPose(const geometry_msgs::Pose target_pose);
     
@@ -33,6 +37,12 @@ class LwrPickNPlace{
     void moveAboveObject(const std::string& name);
     void moveAboveObject(const int& id);
     
+    // The robot goes to the bucket's position
+    void moveToBucket();
+    
+    // The robot goes to the zone's position
+    void moveToZone();
+    
     // Close gripper
     void closeGripper();
     
@@ -41,6 +51,12 @@ class LwrPickNPlace{
     
     // Retrieve the current pose from the controller
     void updateCurrentPose();
+    
+    // Retrieve the pose of the zone
+    void updateZonePose();
+    
+    // Check if the bucket is placed on the table
+    bool checkBucket();
     
   private:
     //*** Class private functions ***//
@@ -56,11 +72,14 @@ class LwrPickNPlace{
     //*** Class private variables ***//
     ros::ServiceClient trajectory_service_client_, gripper_service_client_, current_pose_service_client_;
     
-    std::string base_frame_, ee_frame_;
-    double gripping_offset_;
-    geometry_msgs::Pose start_pose_;
+    tf::TransformListener tf_listener_;
     
-    std::vector<geometry_msgs::Pose> objects_pose_;
+    std::string base_frame_, ee_frame_;
+    double gripping_offset_, zone_release_offset_, bucket_release_offset_;
+    geometry_msgs::Pose start_pose_, bucket_pose_, zone_pose_;
+    
+    std::vector<geometry_msgs::Pose> objects_pose_;    
+    std::vector<bool> objects_pose_outdated_;
 };
 
 #endif // LWRPICKNPLACE_LWRPICKNPLACE_HPP_

@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   geometry_msgs
   cart_opt_ctrl
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
