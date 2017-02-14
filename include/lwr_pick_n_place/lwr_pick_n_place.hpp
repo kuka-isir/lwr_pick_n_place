@@ -11,6 +11,7 @@
 
 #include <cart_opt_ctrl/UpdateWaypoints.h>
 #include <cart_opt_ctrl/GetCurrentPose.h>
+#include <lwr_gripper/GripperAction.h>
 
 #define M_PI 3.14159265358979323846  /* pi */
 
@@ -71,6 +72,7 @@ class LwrPickNPlace{
   private:
     //*** Class private variables ***//
     ros::ServiceClient trajectory_service_client_, gripper_service_client_, current_pose_service_client_;
+    actionlib::SimpleActionClient<lwr_gripper::GripperAction> gripper_ac_;
     
     tf::TransformListener tf_listener_;
     

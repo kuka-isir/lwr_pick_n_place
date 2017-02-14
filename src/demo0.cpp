@@ -5,6 +5,9 @@ int main(int argc, char** argv){
   ros::NodeHandle nh;
   LwrPickNPlace lwr_pick_n_place;
   
+  // Open the gripper on start
+  lwr_pick_n_place.openGripper();
+  
   // Start from the start
   lwr_pick_n_place.moveToStart();
   

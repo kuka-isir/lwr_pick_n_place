@@ -1,6 +1,8 @@
 #include <lwr_pick_n_place/lwr_pick_n_place.hpp>
 
-LwrPickNPlace::LwrPickNPlace(){
+LwrPickNPlace::LwrPickNPlace() :
+  gripper_ac_("gripper")
+{
   ros::NodeHandle nh, nh_param("~");
   nh_param.param<std::string>("base_frame", base_frame_ , "link_0");
   nh_param.param<std::string>("ee_frame", ee_frame_, "ati_link");
@@ -25,13 +27,17 @@ LwrPickNPlace::LwrPickNPlace(){
   
   // Wait until the required ROS services are available
   trajectory_service_client_ = nh.serviceClient<cart_opt_ctrl::UpdateWaypoints>("/KDLTrajCompute/updateWaypoints");
-//   gripper_service_client_ = nh.serviceClient();
   current_pose_service_client_ = nh.serviceClient<cart_opt_ctrl::GetCurrentPose>("/CartOptCtrl/getCurrentPose");
   while(!trajectory_service_client_.exists() || !current_pose_service_client_.exists()){
     ROS_INFO("Waiting for services to be ready ...");
     sleep(1.0);
   }
   ROS_INFO("Services ready !");
+  
+  ROS_INFO("Waiting for the gripper action server to be ready ...");
+  gripper_ac_.waitForServer();
+  ROS_INFO("Gripper action server ready !");
+  
 }
 
 void LwrPickNPlace::moveAboveObject(const std::string& name){
@@ -162,11 +168,15 @@ void LwrPickNPlace::moveToBucket(){
 
 
 void LwrPickNPlace::openGripper(){
-//   gripper_service_client_.call();
+  lwr_gripper::GripperGoal open_goal;
+  open_goal.close = false;
+  gripper_ac_.sendGoalAndWait(open_goal);
 }
 
 void LwrPickNPlace::closeGripper(){
-//   gripper_service_client_.call();
+  lwr_gripper::GripperGoal close_goal;
+  close_goal.close = true;
+  gripper_ac_.sendGoalAndWait(close_goal);
 }
 
 void LwrPickNPlace::updateObjectsPosition(){

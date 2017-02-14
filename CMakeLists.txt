@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   cart_opt_ctrl
   tf
+  lwr_gripper
 )
 
 ## System dependencies are found with CMake's conventions
