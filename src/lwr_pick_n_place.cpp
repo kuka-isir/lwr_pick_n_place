@@ -4,24 +4,43 @@ LwrPickNPlace::LwrPickNPlace() :
   gripper_ac_("gripper")
 {
   ros::NodeHandle nh, nh_param("~");
-  nh_param.param<std::string>("base_frame", base_frame_ , "link_0");
+  nh_param.param<std::string>("base_frame", base_frame_ , "base_link");
   nh_param.param<std::string>("ee_frame", ee_frame_, "ati_link");
   nh_param.param<double>("gripping_offset", gripping_offset_, 0.1);
   nh_param.param<double>("zone_release_offset", zone_release_offset_, 0.15);
   nh_param.param<double>("bucket_release_offset", bucket_release_offset_, 0.2);
   
   // Initialize start_pose
-  // TODO Read start pose from a param
-  start_pose_.position.x = -0.052;
-  start_pose_.position.y = -0.561;
-  start_pose_.position.z = 0.420;
-  start_pose_.orientation.x = -0.70711;
-  start_pose_.orientation.y = 0.70711;
-  start_pose_.orientation.z = 0.0;
-  start_pose_.orientation.w = 0.0;
+  XmlRpc::XmlRpcValue start_pose_param;
+  if(nh_param.getParam("start_pose", start_pose_param) && start_pose_param.size()==7){
+    start_pose_.position.x = start_pose_param[0];
+    start_pose_.position.y = start_pose_param[1];
+    start_pose_.position.z = start_pose_param[2];
+    start_pose_.orientation.x = start_pose_param[3];
+    start_pose_.orientation.y = start_pose_param[4];
+    start_pose_.orientation.z = start_pose_param[5];
+    start_pose_.orientation.w = start_pose_param[6];
+  }
+  else{
+    start_pose_.position.x = 0.4;
+    start_pose_.position.y = 0.0;
+    start_pose_.position.z = 0.4;
+    start_pose_.orientation.x = 0.70711;
+    start_pose_.orientation.y = 0.70711;
+    start_pose_.orientation.z = 0.0;
+    start_pose_.orientation.w = 0.0;
+  }
   
-  // Initialize objects and poses
-  objects_list_.push_back("coke");
+  // Initialize objects list
+  XmlRpc::XmlRpcValue objects_param;
+  if(nh_param.getParam("objects", objects_param)){
+    for(int i =0; i < objects_param.size(); i++)
+      objects_list_.push_back(objects_param[i]);
+  }
+  else
+    objects_list_.push_back("coke");
+  
+  // Initialize objects poses
   objects_pose_.resize(objects_list_.size());
   objects_pose_outdated_.resize(objects_list_.size(), true);
   
@@ -53,10 +72,11 @@ void LwrPickNPlace::moveAboveObject(const int& id){
   
   // Update the robot current cartesian pose
   updateCurrentPose();
+  updateObjectPosition(id);
   
   geometry_msgs::Pose waypoint, gripping_pose = objects_pose_[id];
   gripping_pose.position.z += gripping_offset_;
-  gripping_pose.orientation.x = -0.70711;
+  gripping_pose.orientation.x = 0.70711;
   gripping_pose.orientation.y = 0.70711;
   gripping_pose.orientation.z = 0.0;
   gripping_pose.orientation.w = 0.0;
@@ -95,6 +115,15 @@ void LwrPickNPlace::moveToStart(){
   moveToCartesianPose(start_pose_);
 }
 
+geometry_msgs::Pose LwrPickNPlace::getStartPose(){
+  return start_pose_;
+}
+
+geometry_msgs::Pose LwrPickNPlace::getCurrentPose(){
+  updateCurrentPose();
+  return current_pose_;
+}
+
 void LwrPickNPlace::updateZonePose(){
   tf::StampedTransform transform;
   try{
@@ -105,7 +134,7 @@ void LwrPickNPlace::updateZonePose(){
   zone_pose_.position.x = transform.getOrigin().getX();
   zone_pose_.position.y = transform.getOrigin().getY();
   zone_pose_.position.z = transform.getOrigin().getZ();
-  zone_pose_.orientation.x = -0.70711;
+  zone_pose_.orientation.x = 0.70711;
   zone_pose_.orientation.y = 0.70711;
   zone_pose_.orientation.z = 0.0;
   zone_pose_.orientation.w = 0.0;
@@ -179,10 +208,7 @@ void LwrPickNPlace::closeGripper(){
   gripper_ac_.sendGoalAndWait(close_goal);
 }
 
-void LwrPickNPlace::updateObjectsPosition(){
-  // TODO resize without clearing ?
-  objects_pose_.resize(objects_list_.size());
-  
+void LwrPickNPlace::updateObjectsPosition(){  
   tf::StampedTransform transform;
   for(int i =0; i<objects_list_.size(); i++){
     try{
@@ -201,6 +227,29 @@ void LwrPickNPlace::updateObjectsPosition(){
   }
   
   // TODO handle orientation issues ?
+}
+
+void LwrPickNPlace::updateObjectPosition(const int& id){  
+  tf::StampedTransform transform;
+  try{
+//     tf_listener_.lookupTransform(objects_list_[id], base_frame_, ros::Time(0), transform);
+    tf_listener_.lookupTransform(base_frame_, objects_list_[id], ros::Time::now(), transform);
+  }
+  catch(tf::TransformException ex){
+//       ROS_ERROR("%s",ex.what());
+    objects_pose_outdated_[id] = true;
+    return;
+  }
+  objects_pose_[id].position.x = transform.getOrigin().getX();
+  objects_pose_[id].position.y = transform.getOrigin().getY();
+  objects_pose_[id].position.z = transform.getOrigin().getZ();
+  objects_pose_outdated_[id] = false;
+  
+  // TODO handle orientation issues ?
+}
+
+void LwrPickNPlace::updateObjectPosition(const std::string& name){
+  updateObjectPosition(getIdFromName(name));
 }
 
 bool LwrPickNPlace::objectFoundRecently(const int& id){
@@ -250,7 +299,7 @@ bool LwrPickNPlace::checkBucket(){
   bucket_pose_.position.x = transform.getOrigin().getX();
   bucket_pose_.position.y = transform.getOrigin().getY();
   bucket_pose_.position.z = transform.getOrigin().getZ();
-  bucket_pose_.orientation.x = -0.70711;
+  bucket_pose_.orientation.x = 0.70711;
   bucket_pose_.orientation.y = 0.70711;
   bucket_pose_.orientation.z = 0.0;
   bucket_pose_.orientation.w = 0.0;

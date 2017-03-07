@@ -1,0 +1,12 @@
+<launch>
+
+  <!-- Load params for the pick 'n place action server -->
+  <rosparam ns="lwr_pick_n_place_action_server" command="load" file="$(find lwr_pick_n_place)/config/lwr_pick_n_place_config.yaml" />
+  
+  <!-- Start the pick 'n place action server -->
+  <node name="lwr_pick_n_place_action_server" pkg="lwr_pick_n_place" type="lwr_pick_n_place_action_server" output="screen" />
+
+  <!-- Start the gripper action server -->
+  <node name="lwr_gripper_action_server" pkg="lwr_gripper" type="gripper_action_server" output="screen" />   
+
+</launch>

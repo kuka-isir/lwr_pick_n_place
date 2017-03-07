@@ -24,12 +24,22 @@ class LwrPickNPlace{
     // Retrieve the poses of all the objects
     void updateObjectsPosition();
     
+    // Retrieve the pose of an object
+    void updateObjectPosition(const std::string& name);
+    void updateObjectPosition(const int& id);
+    
     // Check if object has been found recently or if the pose is outdated
     bool objectFoundRecently(const std::string& name);
     bool objectFoundRecently(const int& id);
     
     // The robot tries to go to the (x,y,z) position
     void moveToCartesianPose(const geometry_msgs::Pose target_pose);
+    
+    // Simple getter for the start pose
+    geometry_msgs::Pose getStartPose();
+    
+    // Simple getter for the current pose
+    geometry_msgs::Pose getCurrentPose();
     
     // The robot tries to go to its home position
     void moveToStart();

@@ -11,6 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
   cart_opt_ctrl
   tf
   lwr_gripper
+  message_generation
+  std_msgs
+  actionlib_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -61,17 +64,19 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  FILES
+  GoToStart.action
+  GoToObject.action
+)
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  actionlib_msgs
+  geometry_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -126,8 +131,14 @@ add_dependencies(lwr_pick_n_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_E
 
 add_executable(demo0 src/demo0.cpp)
 target_link_libraries(demo0 ${catkin_LIBRARIES} lwr_pick_n_place)
+add_executable(lwr_pick_n_place_action_server src/lwr_pick_n_place_action_server.cpp)
+add_dependencies(lwr_pick_n_place_action_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(lwr_pick_n_place_action_server ${catkin_LIBRARIES} lwr_pick_n_place)
 add_executable(send_simple_traj src/send_simple_traj.cpp)
 target_link_libraries(send_simple_traj ${catkin_LIBRARIES})
+add_executable(call_action_test src/call_action_test.cpp)
+add_dependencies(call_action_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(call_action_test ${catkin_LIBRARIES})
 
 #############
 ## Install ##
