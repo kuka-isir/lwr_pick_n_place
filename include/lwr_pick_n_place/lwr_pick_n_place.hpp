@@ -33,7 +33,7 @@ class LwrPickNPlace{
     bool objectFoundRecently(const int& id);
     
     // The robot tries to go to the (x,y,z) position
-    void moveToCartesianPose(const geometry_msgs::Pose target_pose);
+    bool moveToCartesianPose(const geometry_msgs::Pose target_pose);
     
     // Simple getter for the start pose
     geometry_msgs::Pose getStartPose();
@@ -42,23 +42,23 @@ class LwrPickNPlace{
     geometry_msgs::Pose getCurrentPose();
     
     // The robot tries to go to its home position
-    void moveToStart();
+    bool moveToStart();
 
     // Go on top of an object
-    void moveAboveObject(const std::string& name);
-    void moveAboveObject(const int& id);
+    bool moveAboveObject(const std::string& name);
+    bool moveAboveObject(const int& id);
     
     // The robot goes to the bucket's position
-    void moveToBucket();
+    bool moveToBucket();
     
     // The robot goes to the zone's position
-    void moveToZone();
+    bool moveToZone();
     
     // Close gripper
-    void closeGripper();
+    bool closeGripper();
     
     // Open gripper
-    void openGripper();
+    bool openGripper();
     
     // Retrieve the current pose from the controller
     void updateCurrentPose();

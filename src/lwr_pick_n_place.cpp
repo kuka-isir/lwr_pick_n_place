@@ -59,15 +59,15 @@ LwrPickNPlace::LwrPickNPlace() :
   
 }
 
-void LwrPickNPlace::moveAboveObject(const std::string& name){
+bool LwrPickNPlace::moveAboveObject(const std::string& name){
   return moveAboveObject(getIdFromName(name));
 }
 
-void LwrPickNPlace::moveAboveObject(const int& id){
+bool LwrPickNPlace::moveAboveObject(const int& id){
   // Check if id is possible
   if((id < 0) || (id >objects_list_.size()-1)){
     ROS_WARN_STREAM("Object with id " << id << " is not in the objects list !");
-    return;
+    return false;
   }
   
   // Update the robot current cartesian pose
@@ -86,19 +86,28 @@ void LwrPickNPlace::moveAboveObject(const int& id){
   kdl_traj_service.request.waypoints.header.stamp = ros::Time::now();
   kdl_traj_service.request.waypoints.poses.push_back(current_pose_);
   
-  waypoint = current_pose_;
-  waypoint.position.z = 0.5;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+  // If we are almost above the object, go down to it
+  if (std::abs(current_pose_.position.x-gripping_pose.position.x)<0.1  && std::abs(current_pose_.position.y-gripping_pose.position.y)<0.1)
+    kdl_traj_service.request.waypoints.poses.push_back(gripping_pose);
+  // Else go up before going down
+  else{
+    // If current pose is almost at good height skip the point
+    if (std::abs(current_pose_.position.z-0.5)>0.01){
+      waypoint = current_pose_;
+      waypoint.position.z = 0.5;
+      kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+    }
+    
+    waypoint = gripping_pose;
+    waypoint.position.z = 0.5;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);  
+    kdl_traj_service.request.waypoints.poses.push_back(gripping_pose);
+  }
   
-  waypoint = gripping_pose;
-  waypoint.position.z = 0.5;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);  
-  kdl_traj_service.request.waypoints.poses.push_back(gripping_pose);
-  
-  trajectory_service_client_.call(kdl_traj_service);
+  return trajectory_service_client_.call(kdl_traj_service);
 }
 
-void LwrPickNPlace::moveToCartesianPose(const geometry_msgs::Pose target_pose){
+bool LwrPickNPlace::moveToCartesianPose(const geometry_msgs::Pose target_pose){
   // Update the robot current cartesian pose
   updateCurrentPose();
   
@@ -108,11 +117,11 @@ void LwrPickNPlace::moveToCartesianPose(const geometry_msgs::Pose target_pose){
   kdl_traj_service.request.waypoints.poses.push_back(current_pose_);  
   kdl_traj_service.request.waypoints.poses.push_back(target_pose);
   
-  trajectory_service_client_.call(kdl_traj_service);
+  return trajectory_service_client_.call(kdl_traj_service);
 }
 
-void LwrPickNPlace::moveToStart(){  
-  moveToCartesianPose(start_pose_);
+bool LwrPickNPlace::moveToStart(){  
+  return moveToCartesianPose(start_pose_);
 }
 
 geometry_msgs::Pose LwrPickNPlace::getStartPose(){
@@ -142,7 +151,7 @@ void LwrPickNPlace::updateZonePose(){
   // TODO Check that the bucket pose is actually above the table or too far away
 }
 
-void LwrPickNPlace::moveToZone(){  
+bool LwrPickNPlace::moveToZone(){  
   // Update the robot current cartesian pose
   updateCurrentPose();
   
@@ -156,21 +165,33 @@ void LwrPickNPlace::moveToZone(){
   kdl_traj_service.request.waypoints.header.stamp = ros::Time::now();
   kdl_traj_service.request.waypoints.poses.push_back(current_pose_);
   
-  waypoint = current_pose_;
-  waypoint.position.z = 0.5;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+  // If we are almost above the zone, go down to it
+  if (std::abs(current_pose_.position.x-zone_pose_.position.x)<0.1  && std::abs(current_pose_.position.y-zone_pose_.position.y)<0.1){
+    waypoint = zone_pose_;
+    waypoint.position.z = zone_pose_.position.z + zone_release_offset_;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+  }
+  // Else go up before going down
+  else{
+    // If current pose is almost at good height skip the point
+    if (std::abs(current_pose_.position.z-0.5)>0.01){
+      waypoint = current_pose_;
+      waypoint.position.z = 0.5;
+      kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+    }
+    
+    waypoint = zone_pose_;
+    waypoint.position.z = 0.5;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+    
+    waypoint.position.z = zone_pose_.position.z + zone_release_offset_;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+  }
   
-  waypoint = zone_pose_;
-  waypoint.position.z = 0.5;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);  
-  
-  waypoint.position.z = zone_pose_.position.z + zone_release_offset_;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);
-  
-  trajectory_service_client_.call(kdl_traj_service);
+  return trajectory_service_client_.call(kdl_traj_service);
 }
 
-void LwrPickNPlace::moveToBucket(){  
+bool LwrPickNPlace::moveToBucket(){  
   // Update the robot current cartesian pose
   updateCurrentPose();
   
@@ -181,31 +202,47 @@ void LwrPickNPlace::moveToBucket(){
   kdl_traj_service.request.waypoints.header.stamp = ros::Time::now();
   kdl_traj_service.request.waypoints.poses.push_back(current_pose_);
   
-  waypoint = current_pose_;
-  waypoint.position.z = 0.5;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+  // If we are almost above the zone, go down to it
+  if (std::abs(current_pose_.position.x-bucket_pose_.position.x)<0.1  && std::abs(current_pose_.position.y-bucket_pose_.position.y)<0.1){
+    waypoint = bucket_pose_;
+    waypoint.position.z = bucket_pose_.position.z + zone_release_offset_;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+  }
+  // Else go up before going down
+  else{
+    // If current pose is almost at good height skip the point
+    if (std::abs(current_pose_.position.z-0.5)>0.01){
+      waypoint = current_pose_;
+      waypoint.position.z = 0.5;
+      kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+    }
+    
+    waypoint = bucket_pose_;
+    waypoint.position.z = 0.5;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+    
+    waypoint.position.z = bucket_pose_.position.z + zone_release_offset_;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+  }
   
-  waypoint = bucket_pose_;
-  waypoint.position.z = 0.5;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);  
-  
-  waypoint.position.z = zone_pose_.position.z + bucket_release_offset_;
-  kdl_traj_service.request.waypoints.poses.push_back(waypoint);
-  
-  trajectory_service_client_.call(kdl_traj_service);
+  return trajectory_service_client_.call(kdl_traj_service);
 }
 
 
-void LwrPickNPlace::openGripper(){
+bool LwrPickNPlace::openGripper(){
   lwr_gripper::GripperGoal open_goal;
   open_goal.close = false;
   gripper_ac_.sendGoalAndWait(open_goal);
+  actionlib::SimpleClientGoalState state = gripper_ac_.getState();
+  return state == actionlib::SimpleClientGoalState::SUCCEEDED;
 }
 
-void LwrPickNPlace::closeGripper(){
+bool LwrPickNPlace::closeGripper(){
   lwr_gripper::GripperGoal close_goal;
   close_goal.close = true;
   gripper_ac_.sendGoalAndWait(close_goal);
+  actionlib::SimpleClientGoalState state = gripper_ac_.getState();
+  return state == actionlib::SimpleClientGoalState::SUCCEEDED;
 }
 
 void LwrPickNPlace::updateObjectsPosition(){  

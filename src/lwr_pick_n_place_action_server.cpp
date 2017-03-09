@@ -23,24 +23,31 @@ class LwrPickNPlaceActionServer {
     actionlib::SimpleActionServer<lwr_pick_n_place::GoToStartAction> go_to_start_as_;
     lwr_pick_n_place::GoToStartFeedback go_to_start_feedback_;
     lwr_pick_n_place::GoToStartResult go_to_start_result_;
-    bool go_to_start_action_finished_;
+    bool go_to_start_action_finished_, go_to_start_action_failed_;
 
     actionlib::SimpleActionServer<lwr_pick_n_place::GoToObjectAction> go_to_object_as_;
     lwr_pick_n_place::GoToObjectFeedback go_to_object_feedback_;
     lwr_pick_n_place::GoToObjectResult go_to_object_result_;
-    bool go_to_object_action_finished_;
+    bool go_to_object_action_finished_, go_to_object_action_failed_;
 
     void goToStartGoalCb(const lwr_pick_n_place::GoToStartGoalConstPtr& goal) {
       ros::Duration r(0.01);
       ros::Timer spawner_thread = nh_.createTimer(r, boost::bind(&LwrPickNPlaceActionServer::executeGoToStart, this, goal, _1), true);
 
       go_to_start_action_finished_ = false;
+      go_to_start_action_failed_ = false;
 
       while (ros::ok()) {
         if (go_to_start_action_finished_) {
           ROS_INFO("GoToStart action complete !");
           go_to_start_result_.result = lwr_pick_n_place::GoToStartResult::SUCCESS;
           go_to_start_as_.setSucceeded(go_to_start_result_);
+          return;
+        }
+        if (go_to_start_action_failed_) {
+          ROS_ERROR("GoToStart action failed !");
+          go_to_start_result_.result = lwr_pick_n_place::GoToStartResult::ABORTED;
+          go_to_start_as_.setAborted(go_to_start_result_);
           return;
         }
         // 	if(go_to_start_as_.isPreemptRequested()) {
@@ -59,8 +66,10 @@ class LwrPickNPlaceActionServer {
       // go_to_start_result_.result = lwr_pick_n_place::GoToStartResult::ABORTED;
       // go_to_start_as_.setAborted(go_to_start_result_);
 
-      lwr_pick_n_place_.moveToStart();
-      go_to_start_action_finished_ = true;
+      if(lwr_pick_n_place_.moveToStart())
+        go_to_start_action_finished_ = true;
+      else
+        go_to_start_action_failed_ = true;
     }
 
 //     void goToStartPreemptCb(){
@@ -77,12 +86,19 @@ class LwrPickNPlaceActionServer {
       ros::Timer spawner_thread = nh_.createTimer(r, boost::bind(&LwrPickNPlaceActionServer::executeGoToObject, this, goal, _1), true);
 
       go_to_object_action_finished_ = false;
+      go_to_object_action_failed_ = false;
 
       while (ros::ok()) {
         if (go_to_object_action_finished_) {
           ROS_INFO("GoToObject action complete !");
           go_to_object_result_.result = lwr_pick_n_place::GoToObjectResult::SUCCESS;
           go_to_object_as_.setSucceeded(go_to_object_result_);
+          return;
+        }
+        if (go_to_object_action_failed_) {
+          ROS_ERROR("GoToStart action failed !");
+          go_to_object_result_.result = lwr_pick_n_place::GoToStartResult::ABORTED;
+          go_to_object_as_.setAborted(go_to_object_result_);
           return;
         }
         // 	if(go_to_start_as_.isPreemptRequested()) {
@@ -100,8 +116,10 @@ class LwrPickNPlaceActionServer {
       // TODO Check if moveToStart function fails
       // TODO Reject goal if the object is not in the database
       lwr_pick_n_place_.updateObjectPosition(goal->object_name);
-      lwr_pick_n_place_.moveAboveObject(goal->object_name);
-      go_to_object_action_finished_ = true;
+      if(lwr_pick_n_place_.moveAboveObject(goal->object_name))
+        go_to_object_action_finished_ = true;
+      else
+        go_to_object_action_failed_ = true;
     }
 
 //     void goToObjectPreemptCb(){
