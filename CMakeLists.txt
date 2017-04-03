@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   std_msgs
   actionlib_msgs
+  serial
 )
 
 ## System dependencies are found with CMake's conventions
@@ -129,6 +130,8 @@ include_directories(
 add_library(lwr_pick_n_place src/lwr_pick_n_place.cpp)
 add_dependencies(lwr_pick_n_place ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(button_gripper_n_gravity src/button_gripper_n_gravity.cpp)
+target_link_libraries(button_gripper_n_gravity ${catkin_LIBRARIES} )
 add_executable(demo0 src/demo0.cpp)
 target_link_libraries(demo0 ${catkin_LIBRARIES} lwr_pick_n_place)
 add_executable(lwr_pick_n_place_action_server src/lwr_pick_n_place_action_server.cpp)
