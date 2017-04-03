@@ -5,6 +5,9 @@
   
   <!-- Start the pick 'n place action server -->
   <node name="lwr_pick_n_place_action_server" pkg="lwr_pick_n_place" type="lwr_pick_n_place_action_server" output="screen" />
+  
+  <!-- Start the button server -->
+  <node name="button_server" pkg="lwr_pick_n_place" type="button_gripper_n_gravity" output="screen" />
 
   <!-- Start the gripper action server -->
   <node name="lwr_gripper_action_server" pkg="lwr_gripper" type="gripper_action_server" output="screen" />   
