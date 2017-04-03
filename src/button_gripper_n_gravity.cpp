@@ -1,18 +1,55 @@
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <std_srvs/Empty.h>
 #include "serial/serial.h"
+#include <mutex>
+
+std::mutex mtx;
+std_msgs::Bool run_gravity, run_gripper;
+
+bool setGravityOn(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+  mtx.lock();
+  run_gravity.data = true;
+  mtx.unlock();
+  return true;
+}
+
+bool setGravityOff(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+  mtx.lock();
+  run_gravity.data = false;
+  mtx.unlock();
+  return true;
+}
+
+bool setGripperClosed(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+  mtx.lock();
+  run_gripper.data = true;
+  mtx.unlock();
+  return true;
+}
+
+bool setGripperOpened(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+  mtx.lock();
+  run_gripper.data = false;
+  mtx.unlock();
+  return true;
+}
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "button_gripper_n_gravity");
   ros::NodeHandle nh;
   ros::Publisher pub_gravity = nh.advertise<std_msgs::Bool>("/activate_gravity",1);
   ros::Publisher pub_gripper = nh.advertise<std_msgs::Bool>("/activate_gripper",1);
+  ros::ServiceServer service_gravity_on = nh.advertiseService("/set_gravity_on", setGravityOn);
+  ros::ServiceServer service_gravity_off = nh.advertiseService("/set_gravity_off", setGravityOff);
+  ros::ServiceServer service_gripper_on = nh.advertiseService("/set_gripper_closed", setGripperClosed);
+  ros::ServiceServer service_gripper_off = nh.advertiseService("/set_gripper_opened", setGripperOpened);
+  
   
   serial::Serial serial("/dev/ttyACM0", 9600);
   
   ros::Rate r(100);
   
-  std_msgs::Bool run_gravity, run_gripper;
   bool button_active = false, gripper_last_open = true, long_press = false;
   run_gripper.data = false;  
   run_gravity.data = false;  
@@ -49,6 +86,7 @@ int main(int argc, char** argv) {
    
     pub_gripper.publish(run_gripper);
     pub_gravity.publish(run_gravity);
+    ros::spinOnce();
     r.sleep();
   }
   
