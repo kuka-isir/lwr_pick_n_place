@@ -3,9 +3,13 @@
 #include <std_srvs/Empty.h>
 #include "serial/serial.h"
 #include <mutex>
+#include <actionlib/client/simple_action_client.h>
+#include <lwr_gripper/GripperAction.h>
 
 std::mutex mtx;
-std_msgs::Bool run_gravity, run_gripper;
+std_msgs::Bool run_gravity;
+bool close_gripper;
+boost::shared_ptr<actionlib::SimpleActionClient<lwr_gripper::GripperAction> > gripper_ac_;
 
 bool setGravityOn(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
   mtx.lock();
@@ -23,14 +27,20 @@ bool setGravityOff(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res
 
 bool setGripperClosed(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
   mtx.lock();
-  run_gripper.data = true;
+  close_gripper = true;
+  lwr_gripper::GripperGoal gripper_goal;
+  gripper_goal.close = true;
+  gripper_ac_->sendGoalAndWait(gripper_goal);
   mtx.unlock();
   return true;
 }
 
 bool setGripperOpened(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
   mtx.lock();
-  run_gripper.data = false;
+  close_gripper = false;
+  lwr_gripper::GripperGoal gripper_goal;
+  gripper_goal.close = false;
+  gripper_ac_->sendGoalAndWait(gripper_goal);
   mtx.unlock();
   return true;
 }
@@ -39,19 +49,18 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "button_gripper_n_gravity");
   ros::NodeHandle nh;
   ros::Publisher pub_gravity = nh.advertise<std_msgs::Bool>("/activate_gravity",1);
-  ros::Publisher pub_gripper = nh.advertise<std_msgs::Bool>("/activate_gripper",1);
   ros::ServiceServer service_gravity_on = nh.advertiseService("/set_gravity_on", setGravityOn);
   ros::ServiceServer service_gravity_off = nh.advertiseService("/set_gravity_off", setGravityOff);
   ros::ServiceServer service_gripper_on = nh.advertiseService("/set_gripper_closed", setGripperClosed);
   ros::ServiceServer service_gripper_off = nh.advertiseService("/set_gripper_opened", setGripperOpened);
-  
+  gripper_ac_.reset(new actionlib::SimpleActionClient<lwr_gripper::GripperAction>("gripper"));
   
   serial::Serial serial("/dev/ttyACM0", 9600);
   
   ros::Rate r(100);
   
   bool button_active = false, gripper_last_open = true, long_press = false;
-  run_gripper.data = false;  
+  close_gripper = false;
   run_gravity.data = false;  
   ros::Time button_timer;
   ros::Duration long_press_time(1,0);
@@ -69,7 +78,10 @@ int main(int argc, char** argv) {
       }
       ros::Duration time_spent_active = ros::Time::now() - button_timer;
       if(time_spent_active > long_press_time && !long_press){
-        run_gripper.data = !run_gripper.data;
+        close_gripper = !close_gripper;
+        lwr_gripper::GripperGoal gripper_goal;
+        gripper_goal.close = close_gripper;
+        gripper_ac_->sendGoal(gripper_goal);
         long_press = true;
       }
     }
@@ -84,7 +96,6 @@ int main(int argc, char** argv) {
       }
     }
    
-    pub_gripper.publish(run_gripper);
     pub_gravity.publish(run_gravity);
     ros::spinOnce();
     r.sleep();
