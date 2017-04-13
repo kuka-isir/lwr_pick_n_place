@@ -1,6 +1,6 @@
 start_pose: [0.4, 0.0, 0.4, 0.70711, 0.70711, 0.0, 0.0]
-objects: [coke]
-gripping_offset: 0.1
+objects: [can_fuerte, can_hydro, can_groovy]
+gripping_offset: 0.18
 zone_release_offset: 0.15
 bucket_release_offset: 0.2
 base_frame: base_link
