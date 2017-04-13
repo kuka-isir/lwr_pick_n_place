@@ -72,7 +72,11 @@ bool LwrPickNPlace::moveAboveObject(const int& id){
   
   // Update the robot current cartesian pose
   updateCurrentPose();
-  updateObjectPosition(id);
+  
+  // Try to get object pose
+  // if not return false
+  if(!updateObjectPosition(id))
+    return false;
   
   geometry_msgs::Pose waypoint, gripping_pose = objects_pose_[id];
   gripping_pose.position.z += gripping_offset_;
@@ -266,16 +270,21 @@ void LwrPickNPlace::updateObjectsPosition(){
   // TODO handle orientation issues ?
 }
 
-void LwrPickNPlace::updateObjectPosition(const int& id){  
+bool LwrPickNPlace::updateObjectPosition(const int& id){  
   tf::StampedTransform transform;
   try{
-//     tf_listener_.lookupTransform(objects_list_[id], base_frame_, ros::Time(0), transform);
-    tf_listener_.lookupTransform(base_frame_, objects_list_[id], ros::Time::now(), transform);
+    if( tf_listener_.waitForTransform(base_frame_, objects_list_[id], ros::Time(0), ros::Duration(2.0)))
+      tf_listener_.lookupTransform(base_frame_, objects_list_[id], ros::Time(0), transform);
+    else{
+      ROS_WARN_STREAM("Could not get transform for object "<< objects_list_[id]<<" in the last 2s.");
+      return false;
+    }
   }
   catch(tf::TransformException ex){
-//       ROS_ERROR("%s",ex.what());
+    ROS_ERROR("%s",ex.what());
+    
     objects_pose_outdated_[id] = true;
-    return;
+    return false;
   }
   objects_pose_[id].position.x = transform.getOrigin().getX();
   objects_pose_[id].position.y = transform.getOrigin().getY();
@@ -283,10 +292,11 @@ void LwrPickNPlace::updateObjectPosition(const int& id){
   objects_pose_outdated_[id] = false;
   
   // TODO handle orientation issues ?
+  return true;
 }
 
-void LwrPickNPlace::updateObjectPosition(const std::string& name){
-  updateObjectPosition(getIdFromName(name));
+bool LwrPickNPlace::updateObjectPosition(const std::string& name){
+  return updateObjectPosition(getIdFromName(name));
 }
 
 bool LwrPickNPlace::objectFoundRecently(const int& id){

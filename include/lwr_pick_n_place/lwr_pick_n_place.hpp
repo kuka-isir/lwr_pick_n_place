@@ -25,8 +25,8 @@ class LwrPickNPlace{
     void updateObjectsPosition();
     
     // Retrieve the pose of an object
-    void updateObjectPosition(const std::string& name);
-    void updateObjectPosition(const int& id);
+    bool updateObjectPosition(const std::string& name);
+    bool updateObjectPosition(const int& id);
     
     // Check if object has been found recently or if the pose is outdated
     bool objectFoundRecently(const std::string& name);
