@@ -48,6 +48,9 @@ class LwrPickNPlace{
     bool moveAboveObject(const std::string& name);
     bool moveAboveObject(const int& id);
     
+    // Move to put down an object at a specific pose
+    bool putDownObject(const geometry_msgs::Pose& pose);
+    
     // The robot goes to the bucket's position
     bool moveToBucket();
     

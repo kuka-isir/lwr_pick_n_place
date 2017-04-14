@@ -2,6 +2,7 @@
 #include <lwr_pick_n_place/lwr_pick_n_place.hpp>
 #include <lwr_pick_n_place/GoToStartAction.h>
 #include <lwr_pick_n_place/GoToObjectAction.h>
+#include <lwr_pick_n_place/PutDownObjectAction.h>
 
 
 class LwrPickNPlaceActionServer {
@@ -9,11 +10,14 @@ class LwrPickNPlaceActionServer {
     LwrPickNPlaceActionServer(ros::NodeHandle& nh, LwrPickNPlace& lwr_pick_n_place) :
       nh_(nh), lwr_pick_n_place_(lwr_pick_n_place),
       go_to_start_as_(nh, "lwr_pick_n_place/go_to_start", boost::bind(&LwrPickNPlaceActionServer::goToStartGoalCb, this, _1), false),
-      go_to_object_as_(nh, "lwr_pick_n_place/go_to_object", boost::bind(&LwrPickNPlaceActionServer::goToObjectGoalCb, this, _1), false) {
+      go_to_object_as_(nh, "lwr_pick_n_place/go_to_object", boost::bind(&LwrPickNPlaceActionServer::goToObjectGoalCb, this, _1), false),
+      put_down_object_as_(nh, "lwr_pick_n_place/put_down_object", boost::bind(&LwrPickNPlaceActionServer::putDownObjectGoalCb, this, _1), false){
 //       go_to_start_as_.registerPreemptCallback(boost::bind(&LwrPickNPlaceActionServer::goToStartPreemptCb, this));
 //       go_to_object_as_.registerPreemptCallback(boost::bind(&LwrPickNPlaceActionServer::goToObjectPreemptCb, this));
+//       put_down_object_as_.registerPreemptCallback(boost::bind(&LwrPickNPlaceActionServer::putDownObjectPreemptCb, this));
       go_to_start_as_.start();
       go_to_object_as_.start();
+      put_down_object_as_.start();
     }
 
   protected:
@@ -29,6 +33,11 @@ class LwrPickNPlaceActionServer {
     lwr_pick_n_place::GoToObjectFeedback go_to_object_feedback_;
     lwr_pick_n_place::GoToObjectResult go_to_object_result_;
     bool go_to_object_action_finished_, go_to_object_action_failed_;
+    
+    actionlib::SimpleActionServer<lwr_pick_n_place::PutDownObjectAction> put_down_object_as_;
+    lwr_pick_n_place::PutDownObjectFeedback put_down_object_feedback_;
+    lwr_pick_n_place::PutDownObjectResult put_down_object_result_;
+    bool put_down_object_action_finished_, put_down_object_action_failed_;
 
     void goToStartGoalCb(const lwr_pick_n_place::GoToStartGoalConstPtr& goal) {
       ros::Duration r(0.01);
@@ -129,6 +138,53 @@ class LwrPickNPlaceActionServer {
     void sendGoToObjectFeedback() {
       go_to_object_feedback_.current_pose = lwr_pick_n_place_.getCurrentPose();
       go_to_object_as_.publishFeedback(go_to_object_feedback_);
+    }
+    
+    void putDownObjectGoalCb(const lwr_pick_n_place::PutDownObjectGoalConstPtr& goal) {
+      ros::Duration r(0.01);
+      ros::Timer spawner_thread = nh_.createTimer(r, boost::bind(&LwrPickNPlaceActionServer::executePutDownObject, this, goal, _1), true);
+
+      put_down_object_action_finished_ = false;
+      put_down_object_action_failed_ = false;
+
+      while (ros::ok()) {
+        if (put_down_object_action_finished_) {
+          ROS_INFO("GoToObject action complete !");
+          put_down_object_result_.result = lwr_pick_n_place::PutDownObjectResult::SUCCESS;
+          put_down_object_as_.setSucceeded(put_down_object_result_);
+          return;
+        }
+        if (put_down_object_action_failed_) {
+          ROS_ERROR("GoToStart action failed !");
+          put_down_object_result_.result = lwr_pick_n_place::PutDownObjectResult::ABORTED;
+          put_down_object_as_.setAborted(put_down_object_result_);
+          return;
+        }
+        //      if(put_down_object_as_.isPreemptRequested()) {
+        //        ROS_INFO("Preempting GoToStart...");
+        //        spawner_thread.stop();
+        //        return;
+        //      }
+        sendPutDownObjectFeedback();
+        ros::spinOnce();
+        r.sleep();
+      }
+    }
+    
+    void executePutDownObject(const lwr_pick_n_place::PutDownObjectGoalConstPtr& goal, const ros::TimerEvent& te) {
+      if(lwr_pick_n_place_.putDownObject(goal->pose))
+        put_down_object_action_finished_ = true;
+      else
+        put_down_object_action_failed_ = true;
+    }
+
+//     void putDownObjectPreemptCb(){
+//       put_down_object_as_.setPreempted();
+//     }
+
+    void sendPutDownObjectFeedback() {
+      put_down_object_feedback_.current_pose = lwr_pick_n_place_.getCurrentPose();
+      put_down_object_as_.publishFeedback(put_down_object_feedback_);
     }
 };
 

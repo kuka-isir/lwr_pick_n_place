@@ -72,6 +72,7 @@ add_action_files(
   FILES
   GoToStart.action
   GoToObject.action
+  PutDownObject.action
 )
 
 ## Generate added messages and services with any dependencies listed here

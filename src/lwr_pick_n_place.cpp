@@ -111,6 +111,44 @@ bool LwrPickNPlace::moveAboveObject(const int& id){
   return trajectory_service_client_.call(kdl_traj_service);
 }
 
+bool LwrPickNPlace::putDownObject(const geometry_msgs::Pose& pose){
+  
+  // Update the robot current cartesian pose
+  updateCurrentPose();
+  
+  geometry_msgs::Pose waypoint, put_down_pose = pose;
+  put_down_pose.position.z += gripping_offset_;
+  put_down_pose.orientation.x = 0.70711;
+  put_down_pose.orientation.y = 0.70711;
+  put_down_pose.orientation.z = 0.0;
+  put_down_pose.orientation.w = 0.0;
+  
+  cart_opt_ctrl::UpdateWaypoints kdl_traj_service;
+  kdl_traj_service.request.waypoints.header.frame_id = base_frame_;
+  kdl_traj_service.request.waypoints.header.stamp = ros::Time::now();
+  kdl_traj_service.request.waypoints.poses.push_back(current_pose_);
+  
+  // If we are almost above the object, go down to it
+  if (std::abs(current_pose_.position.x-put_down_pose.position.x)<0.1  && std::abs(current_pose_.position.y-put_down_pose.position.y)<0.1)
+    kdl_traj_service.request.waypoints.poses.push_back(put_down_pose);
+  // Else go up before going down
+  else{
+    // If current pose is almost at good height skip the point
+    if (std::abs(current_pose_.position.z-0.5)>0.01){
+      waypoint = current_pose_;
+      waypoint.position.z = 0.5;
+      kdl_traj_service.request.waypoints.poses.push_back(waypoint);
+    }
+    
+    waypoint = put_down_pose;
+    waypoint.position.z = 0.5;
+    kdl_traj_service.request.waypoints.poses.push_back(waypoint);  
+    kdl_traj_service.request.waypoints.poses.push_back(put_down_pose);
+  }
+  
+  return trajectory_service_client_.call(kdl_traj_service);
+}
+
 bool LwrPickNPlace::moveToCartesianPose(const geometry_msgs::Pose target_pose){
   // Update the robot current cartesian pose
   updateCurrentPose();
