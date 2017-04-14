@@ -6,7 +6,7 @@ LwrPickNPlace::LwrPickNPlace() :
   ros::NodeHandle nh, nh_param("~");
   nh_param.param<std::string>("base_frame", base_frame_ , "base_link");
   nh_param.param<std::string>("ee_frame", ee_frame_, "ati_link");
-  nh_param.param<double>("gripping_offset", gripping_offset_, 0.1);
+  nh_param.param<double>("gripping_offset", gripping_offset_, 0.18);
   nh_param.param<double>("zone_release_offset", zone_release_offset_, 0.15);
   nh_param.param<double>("bucket_release_offset", bucket_release_offset_, 0.2);
   
